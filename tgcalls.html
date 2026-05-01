@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TG Alpha Calls — Solana Sniper</title>
+<link rel="icon" type="image/png" sizes="512x512" href="https://165.22.118.96.nip.io/dashboard/favicon.png?v=4">
+<link rel="apple-touch-icon" sizes="180x180" href="https://165.22.118.96.nip.io/dashboard/favicon.png?v=4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sniper">
+<meta name="theme-color" content="#0d0f14">
+<style>
+  :root { --bg:#0d0f14; --card:#161a23; --border:#252a36; --text:#e2e8f0; --muted:#8b9ab0; --green:#22c55e; --red:#ef4444; --yellow:#f59e0b; --blue:#61abff; --purple:#a855f7; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif; font-size:14px; }
+  header { padding:16px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  header h1 { font-size:18px; font-weight:700; letter-spacing:-0.3px; }
+  header h1 span { color:var(--blue); }
+  header nav { display:flex; align-items:center; gap:0; }
+  header nav a { color:#61abff; font-size:13px; text-decoration:none; padding:0 14px; border-right:1px solid rgba(255,255,255,0.12); line-height:1; white-space:nowrap; }
+  header nav a:last-child { border-right:none; }
+  header nav a:hover { color:#93c5fd; }
+  header nav a.active { color:#ffffff; font-weight:600; }
+  .nav-burger { display:none; background:none; border:1px solid var(--border); color:#61abff; font-size:18px; padding:4px 10px; border-radius:6px; cursor:pointer; line-height:1.2; }
+  @media (max-width:700px) {
+    header { flex-wrap:wrap; gap:8px; padding:10px 14px; }
+    header nav { display:none; flex-direction:column; width:100%; order:99; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:4px 0; }
+    header nav.open { display:flex; }
+    header nav a { margin:0; padding:11px 16px; font-size:14px; border-right:none; border-bottom:1px solid rgba(255,255,255,0.05); }
+    header nav a:last-child { border-bottom:none; }
+    .nav-burger { display:block; margin-left:auto; }
+  }
+  main { padding:20px 24px; max-width:1600px; margin:0 auto; }
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-bottom:20px; }
+  .stat { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .stat .label { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.3px; margin-bottom:4px; }
+  .stat .value { font-size:20px; font-weight:700; }
+  .stat .sub { color:var(--muted); font-size:11px; margin-top:2px; }
+  .filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+  .filters label { color:var(--muted); font-size:12px; }
+  .filters select, .filters input { background:var(--card); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:6px; font-size:12px; outline:none; }
+  .filters select:focus, .filters input:focus { border-color:var(--blue); }
+  .filters .filter-group { display:flex; align-items:center; gap:6px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { color:var(--muted); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:.4px; padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); cursor:pointer; user-select:none; white-space:nowrap; }
+  th:hover { color:var(--text); }
+  th.sort-asc::after { content:" ↑"; color:var(--blue); }
+  th.sort-desc::after { content:" ↓"; color:var(--blue); }
+  td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(255,255,255,0.025); }
+  .mint { font-family:monospace; font-size:11px; color:var(--muted); }
+  .mint a { color:var(--blue); text-decoration:none; }
+  .mint a:hover { text-decoration:underline; }
+  .count-badge { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; font-size:13px; font-weight:700; }
+  .count-1 { background:rgba(139,154,176,0.15); color:var(--muted); }
+  .count-2 { background:rgba(59,130,246,0.2); color:#93c5fd; }
+  .count-3 { background:rgba(168,85,247,0.2); color:#d8b4fe; }
+  .count-high { background:rgba(245,158,11,0.2); color:#fde047; }
+  .ch-tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:500; background:rgba(59,130,246,0.12); color:#93c5fd; margin:2px 2px 2px 0; white-space:nowrap; }
+  .age { color:var(--muted); font-size:12px; }
+  .empty { color:var(--muted); text-align:center; padding:40px; font-size:13px; }
+  .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-right:6px; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .refresh-info { color:var(--muted); font-size:12px; }
+  .channel-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:20px; }
+  .ch-filter-btn { padding:4px 12px; border-radius:20px; font-size:12px; border:1px solid var(--border); background:var(--card); color:var(--muted); cursor:pointer; transition:all .15s; }
+  .ch-filter-btn:hover { border-color:var(--blue); color:var(--blue); }
+  .ch-filter-btn.active { background:rgba(59,130,246,0.15); border-color:var(--blue); color:#93c5fd; font-weight:600; }
+  .search-input { background:var(--card); border:1px solid var(--border); color:var(--text); padding:7px 12px; border-radius:6px; font-size:13px; outline:none; width:220px; }
+  .search-input:focus { border-color:var(--blue); }
+  .row-count { color:var(--muted); font-size:12px; }
+  .gmgn-btn { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; background:rgba(34,197,94,0.12); color:var(--green); text-decoration:none; margin-left:4px; }
+  .gmgn-btn:hover { background:rgba(34,197,94,0.2); }
+  .dex-btn { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; background:rgba(245,158,11,0.12); color:var(--yellow); text-decoration:none; margin-left:4px; }
+  .dex-btn:hover { background:rgba(245,158,11,0.2); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 Solana <span>Sniper</span></h1>
+  <button class="nav-burger" onclick="document.querySelector('header nav').classList.toggle('open')" aria-label="Menu">☰</button>
+  <nav>
+    <a href="/index.html">Dashboard</a>
+    <a href="/index.html">P&L Calendar</a>
+    <a href="/security.html">Manual Trade</a>
+    <a href="/scan.html">Scan</a>
+    <a href="/index.html">Strategy</a>
+    <a href="/tgcalls.html" class="active">TG Calls</a>
+  </nav>
+  <div class="refresh-info"><span class="dot"></span>Live · <span id="countdown">30</span>s</div>
+</header>
+
+<main>
+  <!-- Stats Row -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat"><div class="label">Tokens Tracked</div><div class="value" id="stat-tokens">—</div></div>
+    <div class="stat"><div class="label">Total Calls</div><div class="value" id="stat-calls">—</div></div>
+    <div class="stat"><div class="label">Multi-Called</div><div class="value" id="stat-multi">—</div><div class="sub">called by 2+ channels</div></div>
+    <div class="stat"><div class="label">Channels Active</div><div class="value" id="stat-channels">—</div></div>
+    <div class="stat"><div class="label">Last Updated</div><div class="value" id="stat-updated" style="font-size:13px">—</div></div>
+  </div>
+
+  <!-- Add Channel widget (collapsible) -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+    <div onclick="toggleAddPanel()" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;user-select:none">
+      <div style="font-size:13px;font-weight:600;color:var(--text)">➕ Manage Monitored Channels <span style="font-size:12px;color:var(--muted);font-weight:400">(<span id="ch-count">—</span> channels)</span></div>
+      <span id="add-panel-arrow" style="color:var(--muted);font-size:13px;transition:transform .2s">▶</span>
+    </div>
+    <div id="add-panel-body" style="display:none;padding:0 18px 16px 18px;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap;padding-top:14px">
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Paste one channel per line, or comma-separated. t.me/ links work too.</div>
+          <textarea id="new-channel-input" placeholder="PowsGemCalls&#10;mad_apes_call&#10;https://t.me/AlphaGroup" style="background:#0d0f14;border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:12px;outline:none;width:100%;height:90px;resize:vertical;font-family:monospace;line-height:1.5"></textarea>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+            <button onclick="addChannels()" style="padding:7px 20px;border-radius:6px;border:none;background:var(--blue);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Save</button>
+            <span id="add-channel-msg" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px">⚠️ Join each channel with the dedicated account first.</div>
+        </div>
+        <div style="min-width:200px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">Currently Monitoring</div>
+          <div id="ch-list" style="font-size:12px;color:var(--muted);line-height:1.9;max-height:200px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Channel Stats panel (collapsible) -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden">
+    <div onclick="toggleStatsPanel()" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;user-select:none">
+      <div style="font-size:13px;font-weight:600;color:var(--text)">📊 Channel Stats <span style="font-size:12px;color:var(--muted);font-weight:400">member count · calls · win rate</span></div>
+      <span id="stats-panel-arrow" style="color:var(--muted);font-size:13px">▶</span>
+    </div>
+    <div id="stats-panel-body" style="display:none;border-top:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr>
+            <th style="padding:10px 16px;text-align:left;color:var(--muted);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Channel</th>
+            <th style="padding:10px 16px;text-align:right;color:var(--muted);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Members</th>
+            <th style="padding:10px 16px;text-align:right;color:var(--muted);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Calls 72h</th>
+            <th style="padding:10px 16px;text-align:right;color:var(--muted);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Win Rate</th>
+            <th style="padding:10px 16px;text-align:left;color:var(--muted);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Note</th>
+          </tr>
+        </thead>
+        <tbody id="stats-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Channel quick-filter buttons -->
+  <div class="channel-bar" id="channel-bar">
+    <button class="ch-filter-btn active" data-ch="all" onclick="setChannelFilter('all',this)">All Channels</button>
+  </div>
+
+  <!-- Filters row -->
+  <div class="filters" style="margin-bottom:16px">
+    <div class="filter-group">
+      <label>Search</label>
+      <input class="search-input" id="search-input" placeholder="token address or channel…" oninput="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>Min calls</label>
+      <select id="filter-min-calls" onchange="applyFilters()">
+        <option value="1">1+</option>
+        <option value="2">2+</option>
+        <option value="3">3+</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Time window</label>
+      <select id="filter-time" onchange="applyFilters()">
+        <option value="0">All time</option>
+        <option value="1">Last 1h</option>
+        <option value="6">Last 6h</option>
+        <option value="24" selected>Last 24h</option>
+        <option value="72">Last 72h</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Sort by</label>
+      <select id="sort-by" onchange="applyFilters()">
+        <option value="count">Most called</option>
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+      </select>
+    </div>
+    <div class="row-count" id="row-count"></div>
+  </div>
+
+  <!-- Table -->
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:40px">#</th>
+          <th>Token</th>
+          <th style="width:70px;text-align:center">Calls</th>
+          <th>Channels</th>
+          <th style="width:110px;text-align:right">MCAP at Call</th>
+          <th style="width:140px">First Seen</th>
+          <th style="width:140px">Last Call</th>
+          <th style="width:80px">Links</th>
+        </tr>
+      </thead>
+      <tbody id="tbl-body">
+        <tr><td colspan="8" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+const API = '/dashboard';
+let allTokens = [];
+let activeChannel = 'all';
+let countdownVal = 30;
+
+function toggleAddPanel() {
+  const body = document.getElementById('add-panel-body');
+  const arrow = document.getElementById('add-panel-arrow');
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  arrow.textContent = open ? '▼' : '▶';
+}
+
+function toggleStatsPanel() {
+  const body = document.getElementById('stats-panel-body');
+  const arrow = document.getElementById('stats-panel-arrow');
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  arrow.textContent = open ? '▼' : '▶';
+  if (open) loadChannelStats();
+}
+
+function fmtMembers(n) {
+  if (!n) return '—';
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'k';
+  return n.toString();
+}
+
+async function loadChannelStats() {
+  const tbody = document.getElementById('stats-tbl');
+  try {
+    const res = await fetch(API + '/api/tg-channel-stats');
+    const data = await res.json();
+    const stats = data.stats || [];
+    if (!stats.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--muted)">No channel data yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = stats.map(s => {
+      let wrCell, wrNote;
+      if (s.win_rate !== null && s.win_rate !== undefined) {
+        const color = s.win_rate >= 50 ? 'var(--green)' : s.win_rate >= 30 ? 'var(--yellow)' : 'var(--red)';
+        wrCell = `<span style="font-weight:700;color:${color}">${s.win_rate}%</span>`;
+        wrNote = `${s.wins}W / ${s.calls_with_mcap} tracked`;
+      } else {
+        wrCell = '<span style="color:var(--muted)">—</span>';
+        wrNote = s.calls_with_mcap > 0
+          ? `<span style="color:var(--muted);font-size:11px">${s.calls_with_mcap}/3 needed</span>`
+          : '<span style="color:var(--muted);font-size:11px">Building data…</span>';
+      }
+      const memberStr = fmtMembers(s.members);
+      return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+        <td style="padding:10px 16px">
+          <div style="font-weight:600">${s.title}</div>
+          <div style="font-size:11px;color:var(--muted)">@${s.username}</div>
+        </td>
+        <td style="padding:10px 16px;text-align:right;font-weight:600">${memberStr}</td>
+        <td style="padding:10px 16px;text-align:right">${s.calls_72h || '—'}</td>
+        <td style="padding:10px 16px;text-align:right">${wrCell}</td>
+        <td style="padding:10px 16px;font-size:11px;color:var(--muted)">${wrNote}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--red)">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function fmt(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts * 1000);
+  const now = Date.now();
+  const diff = (now - ts * 1000) / 1000;
+  if (diff < 60) return Math.round(diff) + 's ago';
+  if (diff < 3600) return Math.round(diff/60) + 'm ago';
+  if (diff < 86400) return Math.round(diff/3600) + 'h ago';
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+
+function shortMint(m) {
+  return m.slice(0,6) + '…' + m.slice(-4);
+}
+
+function fmtMcap(v) {
+  if (!v || v <= 0) return '—';
+  if (v >= 1e9) return '$' + (v/1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return '$' + (v/1e3).toFixed(0) + 'K';
+  return '$' + v.toFixed(0);
+}
+
+function countClass(n) {
+  if (n >= 4) return 'count-high';
+  if (n === 3) return 'count-3';
+  if (n === 2) return 'count-2';
+  return 'count-1';
+}
+
+function setChannelFilter(ch, btn) {
+  activeChannel = ch;
+  document.querySelectorAll('.ch-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const minCalls = parseInt(document.getElementById('filter-min-calls').value) || 1;
+  const timeH = parseInt(document.getElementById('filter-time').value) || 0;
+  const sortBy = document.getElementById('sort-by').value;
+  const search = document.getElementById('search-input').value.toLowerCase().trim();
+  const now = Math.floor(Date.now() / 1000);
+  const cutoff = timeH > 0 ? now - timeH * 3600 : 0;
+
+  let filtered = allTokens.filter(t => {
+    if (t.count < minCalls) return false;
+    if (cutoff > 0 && t.last_seen < cutoff) return false;
+    if (activeChannel !== 'all' && !t.channels.includes(activeChannel)) return false;
+    if (search) {
+      const inMint = t.mint.toLowerCase().includes(search);
+      const inCh = t.channels.some(c => c.toLowerCase().includes(search));
+      if (!inMint && !inCh) return false;
+    }
+    return true;
+  });
+
+  if (sortBy === 'newest') filtered.sort((a,b) => b.last_seen - a.last_seen);
+  else if (sortBy === 'oldest') filtered.sort((a,b) => a.first_seen - b.first_seen);
+  else filtered.sort((a,b) => b.count - a.count || b.last_seen - a.last_seen);
+
+  renderTable(filtered);
+  document.getElementById('row-count').textContent = filtered.length + ' token' + (filtered.length !== 1 ? 's' : '');
+}
+
+function renderTable(tokens) {
+  const tbody = document.getElementById('tbl-body');
+  if (!tokens.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No tokens match the current filters</td></tr>';
+    return;
+  }
+  tbody.innerHTML = tokens.map((t, i) => {
+    const chTags = t.channels.map(c =>
+      `<span class="ch-tag" onclick="setChannelFilter('${c}', this)" style="cursor:pointer" title="Filter by channel">${c}</span>`
+    ).join('');
+    const gmgnUrl = `https://gmgn.ai/sol/token/${t.mint}`;
+    const dexUrl = `https://dexscreener.com/solana/${t.mint}`;
+    return `<tr>
+      <td style="color:var(--muted);font-size:12px">${i+1}</td>
+      <td>
+        <div class="mint"><a href="${dexUrl}" target="_blank">${shortMint(t.mint)}</a></div>
+        <div style="font-size:10px;color:var(--muted);font-family:monospace;margin-top:2px">${t.mint}</div>
+      </td>
+      <td style="text-align:center">
+        <span class="count-badge ${countClass(t.count)}">${t.count}</span>
+      </td>
+      <td>${chTags}</td>
+      <td style="text-align:right;font-size:12px;font-weight:600;color:${t.call_mcap > 0 ? 'var(--text)' : 'var(--muted)'}">
+        ${t.call_mcap > 0 ? fmtMcap(t.call_mcap) : '—'}
+      </td>
+      <td class="age">${fmt(t.first_seen)}</td>
+      <td class="age">${fmt(t.last_seen)}</td>
+      <td>
+        <a class="gmgn-btn" href="${gmgnUrl}" target="_blank">GMGN</a>
+        <a class="dex-btn" href="${dexUrl}" target="_blank">DEX</a>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function buildChannelBar(channels) {
+  const bar = document.getElementById('channel-bar');
+  const existing = bar.querySelector('[data-ch="all"]');
+  bar.innerHTML = '';
+  const all = document.createElement('button');
+  all.className = 'ch-filter-btn' + (activeChannel === 'all' ? ' active' : '');
+  all.dataset.ch = 'all';
+  all.textContent = 'All Channels';
+  all.onclick = function() { setChannelFilter('all', this); };
+  bar.appendChild(all);
+  channels.forEach(([ch, cnt]) => {
+    const btn = document.createElement('button');
+    btn.className = 'ch-filter-btn' + (activeChannel === ch ? ' active' : '');
+    btn.dataset.ch = ch;
+    btn.textContent = ch + ' (' + cnt + ')';
+    btn.onclick = function() { setChannelFilter(ch, this); };
+    bar.appendChild(btn);
+  });
+}
+
+async function addChannels() {
+  const input = document.getElementById('new-channel-input');
+  const msg = document.getElementById('add-channel-msg');
+  const raw = input.value;
+  // Parse: split by newlines and commas, strip @, dedupe, remove empty
+  const channels = [...new Set(
+    raw.split(/[\\n,]+/).map(s => s.trim().replace(/^@/, '').replace(/^https?:\\/\\/t\\.me\\//,'')).filter(Boolean)
+  )];
+  if (!channels.length) return;
+  msg.textContent = `Adding ${channels.length} channel(s)…`;
+  msg.style.color = 'var(--muted)';
+  try {
+    const res = await fetch(API + '/api/tg-add-channel', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({channels})
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const added = data.added || 0, skipped = data.skipped || 0;
+      msg.textContent = `✅ ${added} added${skipped ? ', ' + skipped + ' already monitored' : ''}. Monitor picks up new ones within 60s.`;
+      msg.style.color = 'var(--green)';
+      input.value = '';
+      loadChannelList();
+    } else {
+      msg.textContent = '⚠️ ' + data.error;
+      msg.style.color = 'var(--yellow)';
+    }
+  } catch(e) {
+    msg.textContent = '❌ Error: ' + e.message;
+    msg.style.color = 'var(--red)';
+  }
+  setTimeout(() => { msg.textContent = ''; }, 6000);
+}
+
+async function loadChannelList() {
+  try {
+    const res = await fetch(API + '/api/tg-channels');
+    const data = await res.json();
+    const channels = data.channels || [];
+    document.getElementById('ch-count').textContent = channels.length;
+    document.getElementById('ch-list').innerHTML = channels.map(c =>
+      `<div>@${c}</div>`
+    ).join('') || '<div style="color:var(--muted)">None</div>';
+  } catch(e) {}
+}
+
+async function load() {
+  try {
+    const res = await fetch(API + '/api/tg-calls');
+    const data = await res.json();
+    allTokens = data.tokens || [];
+    const s = data.summary || {};
+
+    document.getElementById('stat-tokens').textContent = s.total_tokens || 0;
+    document.getElementById('stat-calls').textContent = s.total_calls || 0;
+    document.getElementById('stat-multi').textContent = allTokens.filter(t => t.count >= 2).length;
+    document.getElementById('stat-channels').textContent = (s.channels || []).length;
+    document.getElementById('stat-updated').textContent = fmt(s.updated);
+
+    buildChannelBar(s.channels || []);
+    applyFilters();
+  } catch(e) {
+    document.getElementById('tbl-body').innerHTML =
+      '<tr><td colspan="8" class="empty">⚠️ Could not load data — retrying in ' + countdownVal + 's</td></tr>';
+  }
+}
+
+// Countdown
+setInterval(() => {
+  countdownVal--;
+  if (countdownVal <= 0) { countdownVal = 30; load(); }
+  document.getElementById('countdown').textContent = countdownVal;
+}, 1000);
+
+load();
+loadChannelList();
+</script>
+</body>
+</html>

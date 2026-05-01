@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔍 Security Check — Sol Bot</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0f14; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+  .header { display: flex; align-items: center; gap: 16px; padding: 0 24px; height: 56px; border-bottom: 1px solid #1e2028; background: #12141a; }
+  .header h1 { font-size: 17px; font-weight: 700; }
+  nav a { color: #61abff; font-size: 13px; text-decoration: none; padding: 0 12px; border-right: 1px solid rgba(255,255,255,0.12); white-space: nowrap; }
+  nav a:last-child { border-right: none; }
+  nav a.active { color: #fff; font-weight: 600; }
+  .container { max-width: 800px; margin: 40px auto; padding: 0 24px; }
+  .card { background: #12141a; border: 1px solid #1e2028; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #94a3b8; }
+  input[type=text] { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid #1e2028; color: #e2e8f0; padding: 10px 14px; border-radius: 8px; font-size: 14px; outline: none; }
+  input[type=text]:focus { border-color: #61abff; }
+  .btn { margin-top: 12px; background: #1a6fd4; border: none; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; }
+  .btn:hover { background: #2563eb; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading { display: none; align-items: center; gap: 8px; color: #94a3b8; font-size: 13px; margin-top: 12px; }
+  .loading.visible { display: flex; }
+  .results { margin-top: 20px; }
+  .check-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1e2028; }
+  .check-row:last-child { border-bottom: none; }
+  .check-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .check-name { font-size: 13px; font-weight: 600; color: #94a3b8; min-width: 160px; flex-shrink: 0; }
+  .check-reason { font-size: 13px; color: #e2e8f0; }
+  .token-info { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+  .info-pill { background: rgba(255,255,255,0.05); border: 1px solid #1e2028; border-radius: 8px; padding: 8px 14px; font-size: 13px; }
+  .info-pill .label { color: #64748b; font-size: 11px; margin-bottom: 2px; }
+  .info-pill .val { font-weight: 600; }
+  .verdict { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 8px; font-weight: 700; font-size: 15px; margin-bottom: 16px; }
+  .verdict.pass { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #22c55e; }
+  .verdict.fail { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔍 Security Check</h1>
+  <div style="margin-left:auto">
+    <nav style="display:flex;align-items:center">
+      <a href="/index.html">Dashboard</a>
+      <a href="/scan.html">Scan</a>
+      <a href="/security.html" class="active">Security</a>
+      <a href="/tgcalls.html">TG Calls</a>
+    </nav>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>Token Contract Address</h2>
+    <input type="text" id="mintInput" placeholder="Paste token mint address..." autocomplete="off">
+    <button class="btn" id="checkBtn" onclick="runCheck()">🔍 Run Security Check</button>
+    <div class="loading" id="loading"><div class="spinner"></div>Running checks… (may take 30–60s)</div>
+  </div>
+
+  <div id="resultsContainer" style="display:none">
+    <div class="card">
+      <div id="tokenInfo" class="token-info"></div>
+      <div id="verdict"></div>
+      <div id="checkRows" class="results"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://165.22.118.96.nip.io/dashboard';
+
+// Auto-fill from ?security= param
+(function() {
+  const p = new URLSearchParams(window.location.search);
+  const m = p.get('security');
+  if (m) {
+    document.getElementById('mintInput').value = m;
+    setTimeout(runCheck, 400);
+  }
+})();
+
+async function runCheck() {
+  const mint = document.getElementById('mintInput').value.trim();
+  if (!mint || mint.length < 32) { alert('Enter a valid mint address'); return; }
+
+  const btn = document.getElementById('checkBtn');
+  btn.disabled = true;
+  document.getElementById('loading').classList.add('visible');
+  document.getElementById('resultsContainer').style.display = 'none';
+
+  try {
+    const res = await fetch(`${API}/api/security-check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mint })
+    });
+    const data = await res.json();
+    renderResults(data);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('loading').classList.remove('visible');
+  }
+}
+
+function fmt(n) {
+  if (!n) return '—';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n/1e3).toFixed(1) + 'k';
+  return '$' + n.toFixed(2);
+}
+
+function renderResults(data) {
+  if (data.error) { alert('Error: ' + data.error); return; }
+
+  // Token info pills
+  document.getElementById('tokenInfo').innerHTML = `
+    <div class="info-pill"><div class="label">Symbol</div><div class="val">${data.symbol || '?'}</div></div>
+    <div class="info-pill"><div class="label">Name</div><div class="val">${data.name || '?'}</div></div>
+    <div class="info-pill"><div class="label">Market Cap</div><div class="val">${fmt(data.mcap)}</div></div>
+    <div class="info-pill"><div class="label">Mint</div><div class="val" style="font-size:11px;font-family:monospace">${data.mint.slice(0,12)}…</div></div>
+  `;
+
+  // Verdict
+  const vEl = document.getElementById('verdict');
+  if (data.passed) {
+    vEl.innerHTML = '<div class="verdict pass">✅ PASSED — No issues detected</div>';
+  } else {
+    vEl.innerHTML = '<div class="verdict fail">🚫 BLOCKED — One or more checks failed</div>';
+  }
+
+  // Check rows
+  const checks = data.checks || {};
+  let html = '';
+  for (const [name, c] of Object.entries(checks)) {
+    const icon = c.passed === true ? '✅' : c.passed === false ? '❌' : '⚠️';
+    html += `<div class="check-row">
+      <span class="check-icon">${icon}</span>
+      <span class="check-name">${name}</span>
+      <span class="check-reason">${c.reason || ''}</span>
+    </div>`;
+  }
+  document.getElementById('checkRows').innerHTML = html;
+  document.getElementById('resultsContainer').style.display = 'block';
+}
+
+document.getElementById('mintInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runCheck();
+});
+</script>
+</body>
+</html>

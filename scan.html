@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎯 Scanner — Solana Sniper</title>
+<link rel="icon" type="image/png" sizes="512x512" href="https://165.22.118.96.nip.io/dashboard/favicon.png?v=4">
+<link rel="apple-touch-icon" sizes="180x180" href="https://165.22.118.96.nip.io/dashboard/favicon.png?v=4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sniper">
+<meta name="theme-color" content="#0d0f14">
+<style>
+  :root {
+    --bg: #0a0b0e;
+    --surface: #12141a;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8eaf0;
+    --muted: #9ca3af;
+    --accent: #1a6fd4;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --purple: #a855f7;
+    --orange: #f97316;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; }
+
+  /* ── Header ── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .header h1 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .badge { background: rgba(59,130,246,0.15); color: var(--accent); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(0.8)} }
+  .last-updated { color: var(--muted); font-size: 12px; }
+  .nav-link { color: var(--accent); text-decoration: none; font-size: 13px; opacity: 0.8; }
+  .nav-link:hover { opacity: 1; }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex; flex-direction: column; gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: rgba(18,20,26,0.8);
+  }
+  .scan-title-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .scan-title-bar h1 { margin: 0; font-size: 18px; font-weight: 700; white-space: nowrap; }
+  .filter-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    flex-wrap: wrap;
+  }
+  .filter-row:last-child { border-bottom: none; }
+  .search-box {
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--text); padding: 6px 12px; border-radius: 8px; font-size: 13px;
+    width: 200px; outline: none; flex-shrink: 0;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .filter-btn {
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--muted); padding: 5px 13px; border-radius: 8px; font-size: 12px;
+    cursor: pointer; transition: all 0.15s; font-weight: 500;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: #1a6fd4; border-color: #1a6fd4; color: #fff; }
+  .separator { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+  .stat-pill { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-left: 4px; }
+  .stat-pill span { color: var(--text); font-weight: 600; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border); background: rgba(18,20,26,0.97);
+    position: sticky; top: 0; cursor: pointer; user-select: none; white-space: nowrap;
+    z-index: 10;
+  }
+  thead th:hover { color: var(--text); }
+  thead th .sort-icon { opacity: 0.4; margin-left: 4px; }
+  thead th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.1s; }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  tbody td { padding: 10px 16px; vertical-align: middle; white-space: nowrap; }
+
+  /* Row types */
+  tr.status-signal { background: rgba(34,197,94,0.04); }
+  tr.status-signal:hover { background: rgba(34,197,94,0.08); }
+
+  /* ── Cells ── */
+  .symbol-cell { display: flex; align-items: center; gap: 8px; }
+  .symbol-name { font-weight: 600; color: var(--text); text-decoration: none; }
+  .symbol-name:hover { color: var(--accent); }
+  .gmgn-link {
+    font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: rgba(59,130,246,0.1); color: var(--accent);
+    text-decoration: none; border: 1px solid rgba(59,130,246,0.2);
+    font-weight: 600; letter-spacing: 0.03em;
+  }
+  .gmgn-link:hover { background: rgba(59,130,246,0.25); }
+
+  .mcap-cell { font-weight: 600; }
+  .mcap-tier {
+    font-size: 10px; padding: 1px 5px; border-radius: 3px;
+    margin-left: 6px; font-weight: 700; letter-spacing: 0.03em;
+  }
+  .tier-nano  { background: rgba(107,114,128,0.2); color: var(--muted); }
+  .tier-micro { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .tier-small { background: rgba(59,130,246,0.15); color: var(--accent); }
+  .tier-mid   { background: rgba(168,85,247,0.15); color: var(--purple); }
+  .tier-large { background: rgba(249,115,22,0.15); color: var(--orange); }
+
+  .pct { font-weight: 600; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .neu { color: var(--muted); }
+
+  .status-badge {
+    font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .status-signal-badge { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .status-scanning-badge { background: rgba(107,114,128,0.1); color: var(--muted); }
+  .status-pending-badge { background: rgba(255,255,255,0.05); color: var(--muted); }
+  .status-wait-badge { background: rgba(245,158,11,0.1); color: var(--yellow); }
+
+  .signal-bar {
+    width: 60px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.05);
+    display: inline-block; vertical-align: middle; margin-right: 6px; overflow: hidden;
+  }
+  .signal-bar-fill { height: 100%; border-radius: 2px; background: var(--green); }
+
+  .source-tag {
+    font-size: 10px; padding: 2px 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.05); color: var(--muted); font-weight: 500;
+  }
+
+  .vol-cell { color: var(--muted); font-size: 12px; }
+
+  tbody tr.data-row { cursor: pointer; }
+  tbody tr.data-row:hover td { background: rgba(255,255,255,0.025); }
+  tr.expanded-row td { background: rgba(59,130,246,0.05) !important; }
+  tr.zone-detail-row td { padding: 0; border-bottom: 2px solid rgba(59,130,246,0.2); }
+  .zone-detail-wrap { padding: 12px 24px 14px 32px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  .zone-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; width: 100%; margin-bottom: 2px; }
+  .zone-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px; padding: 9px 14px; min-width: 155px; font-size: 12px;
+  }
+  .zone-card.near-zone { border-color: rgba(34,197,94,0.5); background: rgba(34,197,94,0.07); }
+  .zone-price { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+  .zone-range { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+  .zone-meta { display: flex; gap: 10px; color: var(--muted); font-size: 11px; align-items: center; }
+  .zone-str-bar { width: 36px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); display: inline-block; vertical-align: middle; overflow: hidden; margin-right: 3px; }
+  .zone-str-fill { height: 100%; border-radius: 2px; }
+  .no-zones { color: var(--muted); font-size: 12px; font-style: italic; padding: 6px 0; }
+
+  .empty-state {
+    text-align: center; padding: 80px 24px; color: var(--muted);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── McAp section headers ── */
+  .section-header td {
+    background: rgba(255,255,255,0.02); color: var(--muted); font-size: 11px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 8px 16px; border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Scanner <span style="color:var(--muted);font-weight:400;font-size:14px">— All Candidates</span></h1>
+  <div class="header-right">
+    <div class="pulse"></div>
+    <span class="last-updated" id="last-updated">Loading...</span>
+    <span class="badge" id="total-badge">0 tokens</span>
+    <nav style="display:flex;align-items:center;gap:0;margin-left:16px">
+      <a href="/index.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">Dashboard</a>
+      <a href="/index.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">P&L Calendar</a>
+      <a href="/security.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">Manual Trade</a>
+      <a href="/scan.html" style="color:#ffffff;font-weight:600;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">Scan</a>
+      <a href="/index.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">Strategy</a>
+      <a href="/tgcalls.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;white-space:nowrap">TG Calls</a>
+    </nav>
+  </div>
+</div>
+
+<!-- Controls bar: search + PF + stats + collapse toggle -->
+<div class="controls">
+  <div class="scan-title-bar">
+    <input class="search-box" id="search" placeholder="🔍  Search token..." oninput="render()">
+    <button class="filter-btn" id="btn-pumpfun" onclick="togglePumpFun(this)" title="Show only pump.fun tokens (address ends in 'pump')">PF</button>
+    <button class="filter-btn" id="btn-tgcalls" onclick="toggleTGCalls(this)" title="Show tokens called by 2+ TG channels in last 24h" style="color:#a78bfa;border-color:rgba(167,139,250,0.3)">TG</button>
+    <div class="stat-pill" style="margin-left:8px">Signals: <span id="stat-signals">0</span></div>
+    <div class="stat-pill">Scanning: <span id="stat-scanning">0</span></div>
+    <button onclick="toggleFilters()" id="btn-filters-toggle"
+      style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer"
+      title="Toggle filters"><span id="filter-arrow">▼</span> Filters</button>
+  </div>
+
+  <!-- Collapsible filter panel — starts collapsed -->
+  <div id="filter-panel" style="display:none">
+
+    <!-- Row 1: Status filters -->
+    <div class="filter-row">
+      <button class="filter-btn active" data-status="all"      onclick="setFilter('all',this)"      title="All tokens">All</button>
+      <button class="filter-btn"        data-status="signal"   onclick="setFilter('signal',this)"   title="Tokens with a buy signal">🟢 Signal</button>
+      <button class="filter-btn"        data-status="hot5m"    onclick="setFilter('hot5m',this)"    title="5m > +5%">🔥 5m</button>
+      <button class="filter-btn"        data-status="strong1h" onclick="setFilter('strong1h',this)" title="1h > +20%">📈 1h</button>
+    </div>
+
+    <!-- Row 2: Signal type filters -->
+    <div class="filter-row">
+      <button class="filter-btn active" data-sigtype="all"      onclick="setSigFilter('all',this)"      title="All signal types">All</button>
+      <button class="filter-btn"        data-sigtype="touch"    onclick="setSigFilter('touch',this)"    title="Price AT support zone">Touch</button>
+      <button class="filter-btn"        data-sigtype="bounce"   onclick="setSigFilter('bounce',this)"   title="Bouncing off support">Bounce</button>
+      <button class="filter-btn"        data-sigtype="reversal" onclick="setSigFilter('reversal',this)" title="Reversal at support">Reversal</button>
+      <button class="filter-btn"        data-sigtype="breakout" onclick="setSigFilter('breakout',this)" title="Breaking above zone">Breakout</button>
+      <button class="filter-btn"        data-sigtype="fresh"    onclick="setSigFilter('fresh',this)"    title="Fresh launch momentum">Fresh</button>
+    </div>
+
+    <!-- Row 3: Market cap tier filters -->
+    <div class="filter-row">
+      <button class="filter-btn active" id="btn-nano"  onclick="toggleTier('nano',this)">30k–60k</button>
+      <button class="filter-btn active" id="btn-micro" onclick="toggleTier('micro',this)">60k–200k</button>
+      <button class="filter-btn active" id="btn-small" onclick="toggleTier('small',this)">200k–500k</button>
+      <button class="filter-btn active" id="btn-mid"   onclick="toggleTier('mid',this)">500k–2M</button>
+      <button class="filter-btn active" id="btn-large" onclick="toggleTier('large',this)">2M+</button>
+    </div>
+
+    <!-- Row 4: Age filter -->
+    <div class="filter-row">
+      <span style="font-size:12px;color:var(--muted)">Age</span>
+      <input id="age-min-val" type="number" min="0" placeholder="0" oninput="render()"
+        style="width:52px;background:#0d0f14;border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:12px;outline:none">
+      <select id="age-min-unit" onchange="render()"
+        style="background:#0d0f14;border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:12px;outline:none">
+        <option value="m">m</option>
+        <option value="h">h</option>
+      </select>
+      <span style="color:var(--border);font-size:12px">—</span>
+      <input id="age-max-val" type="number" min="0" placeholder="∞" oninput="render()"
+        style="width:52px;background:#0d0f14;border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:12px;outline:none">
+      <select id="age-max-unit" onchange="render()"
+        style="background:#0d0f14;border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:12px;outline:none">
+        <option value="m">m</option>
+        <option value="h">h</option>
+      </select>
+    </div>
+
+  </div><!-- /filter-panel -->
+</div>
+
+<div class="table-wrap">
+<table id="main-table">
+  <thead>
+    <tr>
+      <th onclick="sortBy('symbol')">Token <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('mcap')" class="sorted" id="th-mcap">Market Cap <span class="sort-icon">↓</span></th>
+      <th onclick="sortBy('m5')">5m <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('h1')">1h <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('h6')">6h <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('volume')">Volume 24h <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('age_mins')">Age <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('ath_mcap')">ATH MC <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('liq')">Liquidity <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('signal_strength')">Signal <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('status')" id="th-status">Status <span class="sort-icon">↕</span></th>
+      <th>Signal</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+
+<script>
+let data = [];
+let sortKey = 'mcap';
+let sortDir = -1;
+let statusFilter = 'all';
+let signalTypeFilter = 'all';
+let tierFilter = { nano: true, micro: true, small: true, mid: true, large: true };
+let pumpFunOnly = false;
+let tgCallsOnly = false;
+
+function fmt(n) {
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n/1e3).toFixed(0) + 'k';
+  return '$' + n.toFixed(0);
+}
+
+function fmtPct(n) {
+  if (n == null || isNaN(n)) return '<span class="neu">—</span>';
+  const cls = n > 0.5 ? 'pos' : n < -0.5 ? 'neg' : 'neu';
+  const sign = n > 0 ? '+' : '';
+  return `<span class="pct ${cls}">${sign}${n.toFixed(1)}%</span>`;
+}
+
+function fmtAge(mins) {
+  if (mins == null || mins < 0) return '<span style="color:var(--muted)">—</span>';
+  if (mins < 60) return Math.round(mins) + 'm';
+  if (mins < 1440) return (mins/60).toFixed(1) + 'h';
+  return Math.floor(mins/1440) + 'd';
+}
+
+function getTier(mcap) {
+  if (mcap < 60000)  return ['nano',  'NANO',  'tier-nano'];
+  if (mcap < 200000) return ['micro', 'MICRO', 'tier-micro'];
+  if (mcap < 500000) return ['small', 'SMALL', 'tier-small'];
+  if (mcap < 2000000)return ['mid',   'MID',   'tier-mid'];
+  return               ['large', 'LARGE', 'tier-large'];
+}
+
+function sourceShort(s) {
+  if (!s) return '—';
+  if (s.includes('gmgn')) return 'GMGN';
+  if (s.includes('dex') || s.includes('dexscreener')) return 'DEXS';
+  if (s.includes('boost')) return 'BOOST';
+  if (s.includes('profile')) return 'PROF';
+  if (s.includes('search')) return 'SRCH';
+  return s.slice(0,6).toUpperCase();
+}
+
+function strategyLabel(s) {
+  if (!s) return '—';
+  const u = s.toUpperCase();
+  if (u === 'BOUNCE' || u === 'SUPPORT_BOUNCE') return '🔄 BOUNCE';
+  if (u === 'POST-PUMP') return '📈 POST-PUMP';
+  if (u === 'BREAKOUT') return '🚀 BREAKOUT';
+  if (u === 'FRESH_LAUNCH') return '🌱 FRESH';
+  if (u.includes('TOUCH')) return '👆 TOUCH';
+  if (u.includes('REVERSAL')) return '🔁 REVERSAL';
+  if (u.includes('TRADEROUTER') || u.includes('GMGN')) return sourceShort(s);
+  return s.slice(0, 8).toUpperCase();
+}
+
+function strategyBadgeClass(s) {
+  if (!s) return 'badge-gray';
+  const u = s.toUpperCase();
+  if (u === 'BREAKOUT') return 'badge-orange';
+  if (u === 'FRESH_LAUNCH') return 'badge-purple';
+  if (u === 'POST-PUMP') return 'badge-yellow';
+  if (u === 'BOUNCE' || u === 'SUPPORT_BOUNCE' || u.includes('TOUCH') || u.includes('REVERSAL')) return 'badge-green';
+  return 'badge-blue';
+}
+
+function statusBadge(token) {
+  const s = token.status || 'pending';
+  if (s === 'signal') return `<span class="status-badge status-signal-badge">🟢 SIGNAL</span>`;
+  if (s === 'scanning') return `<span class="status-badge status-scanning-badge">SCANNED</span>`;
+  return `<span class="status-badge status-pending-badge">—</span>`;
+}
+
+function signalCell(token) {
+  const str = token.signal_strength || 0;
+  const sig = token.signal || '';
+  if (!sig && str === 0) return '<span style="color:var(--muted);font-size:12px">—</span>';
+  const pct = Math.min(100, str);
+  const color = str >= 75 ? '#22c55e' : str >= 50 ? '#f59e0b' : '#6b7280';
+  return `<span class="signal-bar"><span class="signal-bar-fill" style="width:${pct}%;background:${color}"></span></span>`
+       + `<span style="font-size:11px;color:${color};font-weight:600">${sig ? sig.replace('SUPPORT_','') : ''} ${str > 0 ? str.toFixed(0) : ''}</span>`;
+}
+
+function fmtMcap(price, mcap) {
+  // Convert price to mcap display (zones store price, we show as mcap approx)
+  return fmt(price * 1e9);
+}
+
+function buildZoneDetail(t) {
+  const zones = t.zones || [];
+  const currentPrice = t.mcap / 1e9;
+  let inner = '<div class="zone-detail-wrap">';
+  inner += '<div class="zone-label">🏔 Support Zones</div>';
+  if (zones.length === 0) {
+    inner += '<div class="no-zones">No support zones detected yet for this token</div>';
+  } else {
+    for (const z of zones) {
+      const zoneMcapMid = fmt(z.mid * 1e9);
+      const zoneMcapLow = fmt(z.low * 1e9);
+      const zoneMcapHigh = fmt(z.high * 1e9);
+      const distPct = currentPrice > 0 ? ((currentPrice - z.mid) / z.mid * 100) : 0;
+      const isNear = Math.abs(distPct) <= 5;
+      const strColor = z.strength >= 75 ? '#22c55e' : z.strength >= 50 ? '#f59e0b' : '#6b7280';
+      inner += '<div class="zone-card' + (isNear ? ' near-zone' : '') + '">' +
+        '<div class="zone-price">' + zoneMcapMid + (isNear ? ' <span style="color:var(--green);font-size:11px">● NEAR</span>' : '') + '</div>' +
+        '<div class="zone-range" style="color:var(--muted)">' + zoneMcapLow + ' – ' + zoneMcapHigh + '</div>' +
+        '<div class="zone-meta">' +
+          '<span>👆 ' + z.touches + ' touches</span>' +
+          '<span><span class="zone-str-bar"><span class="zone-str-fill" style="width:' + z.strength + '%;background:' + strColor + '"></span></span>' + z.strength.toFixed(0) + '%</span>' +
+          '<span style="color:' + (distPct > 0 ? 'var(--green)' : 'var(--red)') + '">' + (distPct > 0 ? '+' : '') + distPct.toFixed(1) + '% away</span>' +
+        '</div>' +
+        '</div>';
+    }
+  }
+  inner += '</div>';
+  return inner;
+}
+
+const expandedRows = new Set();
+function toggleZones(mint) {
+  const id = mint.slice(0,8);
+  const dataRow = document.getElementById('row-' + id);
+  const zoneRow = document.getElementById('zone-' + id);
+  if (!zoneRow) return;
+  const isOpen = expandedRows.has(mint);
+  if (isOpen) {
+    zoneRow.style.display = 'none';
+    dataRow && dataRow.classList.remove('expanded-row');
+    expandedRows.delete(mint);
+  } else {
+    zoneRow.style.display = '';
+    dataRow && dataRow.classList.add('expanded-row');
+    expandedRows.add(mint);
+  }
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  let filtered = data.filter(t => {
+    if (q && !t.symbol.toLowerCase().includes(q) && !t.mint.toLowerCase().includes(q)) return false;
+    if (statusFilter === 'signal'   && t.status !== 'signal') return false;
+    if (statusFilter === 'hot5m'    && t.m5 <= 5)  return false;
+    if (statusFilter === 'strong1h' && t.h1 <= 20) return false;
+    if (signalTypeFilter === 'touch'    && t.signal !== 'SUPPORT_TOUCH')    return false;
+    if (signalTypeFilter === 'bounce'   && t.signal !== 'SUPPORT_BOUNCE')   return false;
+    if (signalTypeFilter === 'reversal' && t.signal !== 'SUPPORT_REVERSAL') return false;
+    if (signalTypeFilter === 'breakout' && t.strategy !== 'BREAKOUT')       return false;
+    if (signalTypeFilter === 'fresh'    && t.strategy !== 'FRESH_LAUNCH')   return false;
+    if (pumpFunOnly && !t.mint.endsWith('pump')) return false;
+    if (tgCallsOnly && (!t.tg_channels || t.tg_channels.length < 2)) return false;
+    // Age filter
+    const _ageMinVal = parseFloat(document.getElementById('age-min-val').value);
+    const _ageMaxVal = parseFloat(document.getElementById('age-max-val').value);
+    const _ageMinUnit = document.getElementById('age-min-unit').value;
+    const _ageMaxUnit = document.getElementById('age-max-unit').value;
+    const _ageMinMins = (!_ageMinVal || isNaN(_ageMinVal) || _ageMinVal <= 0) ? 0 : (_ageMinUnit === 'h' ? _ageMinVal * 60 : _ageMinVal);
+    const _ageMaxMins = (!_ageMaxVal || isNaN(_ageMaxVal) || _ageMaxVal <= 0) ? Infinity : (_ageMaxUnit === 'h' ? _ageMaxVal * 60 : _ageMaxVal);
+    if (t.age_mins != null && _ageMinMins > 0 && t.age_mins < _ageMinMins) return false;
+    if (t.age_mins != null && _ageMaxMins < Infinity && t.age_mins > _ageMaxMins) return false;
+    const [tier] = getTier(t.mcap);
+    if (!tierFilter[tier]) return false;
+    return true;
+  });
+
+  // Sort
+  const statusOrder = {signal: 0, scanning: 1, pending: 2};
+  filtered.sort((a, b) => {
+    let av = sortKey === 'status' ? (statusOrder[a.status] ?? 3) : a[sortKey];
+    let bv = sortKey === 'status' ? (statusOrder[b.status] ?? 3) : b[sortKey];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av == null) av = -Infinity;
+    if (bv == null) bv = -Infinity;
+    return sortDir * (av > bv ? 1 : av < bv ? -1 : 0);
+  });
+
+  // Stats
+  document.getElementById('stat-signals').textContent  = filtered.filter(t => t.status === 'signal').length;
+  document.getElementById('stat-scanning').textContent = filtered.filter(t => t.status === 'scanning').length;
+  document.getElementById('total-badge').textContent   = filtered.length + ' tokens';
+
+  let rows = [];
+  for (let i = 0; i < filtered.length; i++) {
+    const t = filtered[i];
+    const id = 'row-' + t.mint.slice(0,8);
+    const gmgn = 'https://gmgn.ai/sol/token/' + t.mint;
+    const tier = getTier(t.mcap);
+    const tierClass = tier[2];
+    const tierLabel = tier[1];
+    const rowClass = (t.status === 'signal' ? 'status-signal ' : '') + 'data-row';
+    rows.push(
+      '<tr class="' + rowClass + '" id="' + id + '" data-mint="' + t.mint + '" onclick="toggleZones(this.dataset.mint)">' +
+      '<td><div class="symbol-cell">' +
+        '<a href="' + gmgn + '" target="_blank" class="symbol-name" onclick="event.stopPropagation()">' + t.symbol + '</a>' +
+        '<a href="' + gmgn + '" target="_blank" class="gmgn-link" onclick="event.stopPropagation()">GMGN</a>' +
+        '<span class="mcap-tier ' + tierClass + '">' + tierLabel + '</span>' +
+        '<a href="/manual?security=' + t.mint + '" target="_blank" class="gmgn-link" onclick="event.stopPropagation()" title="Run security check" style="color:#f59e0b;border-color:rgba(245,158,11,0.3)">🔍</a>' +
+        (t.tg_channels && t.tg_channels.length >= 2 ? '<span title="Called by: ' + t.tg_channels.join(', ') + '" style="cursor:default;font-size:10px;padding:2px 6px;border-radius:10px;background:rgba(167,139,250,0.15);color:#a78bfa;border:1px solid rgba(167,139,250,0.3);white-space:nowrap">TG×' + t.tg_channels.length + '</span>' : '') +
+      '</div></td>' +
+      '<td class="mcap-cell">' + fmt(t.mcap) + '</td>' +
+      '<td>' + fmtPct(t.m5) + '</td>' +
+      '<td>' + fmtPct(t.h1) + '</td>' +
+      '<td>' + fmtPct(t.h6) + '</td>' +
+      '<td class="vol-cell">' + fmt(t.volume) + '</td>' +
+      '<td style="font-size:12px;white-space:nowrap">' + fmtAge(t.age_mins) + '</td>' +
+      '<td class="vol-cell" style="color:var(--yellow)">' + (t.ath_mcap > 0 ? fmt(t.ath_mcap) : '<span style="color:var(--muted)">—</span>') + '</td>' +
+      '<td class="vol-cell">' + fmt(t.liq) + '</td>' +
+      '<td>' + signalCell(t) + '</td>' +
+      '<td>' + statusBadge(t) + '</td>' +
+      '<td><span class="badge ' + strategyBadgeClass(t.strategy || t.signal) + '" style="font-size:10px">' + (t.strategy ? strategyLabel(t.strategy) : sourceShort(t.source)) + '</span></td>' +
+      '</tr>' +
+      '<tr class="zone-detail-row" id="zone-' + t.mint.slice(0,8) + '" style="display:none">' +
+      '<td colspan="10">' + buildZoneDetail(t) + '</td>' +
+      '</tr>'
+    );
+  }
+  let html = rows.join('');
+
+  if (!html) {
+    html = `<tr><td colspan="10"><div class="empty-state">
+      <div class="icon">🔍</div>
+      <p>No tokens match the current filters</p>
+    </div></td></tr>`;
+  }
+
+  document.getElementById('tbody').innerHTML = html;
+}
+
+function sortBy(key) {
+  if (sortKey === key) { sortDir *= -1; }
+  else { sortKey = key; sortDir = key === 'symbol' ? 1 : -1; }
+  // Update header icons
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+  const header = document.getElementById('th-' + key);
+  if (header) header.classList.add('sorted');
+  render();
+}
+
+function toggleFilters() {
+  const panel = document.getElementById('filter-panel');
+  const arrow = document.getElementById('filter-arrow');
+  const hidden = panel.style.display === 'none';
+  panel.style.display = hidden ? '' : 'none';
+  arrow.textContent = hidden ? '▲' : '▼';
+}
+
+function setFilter(val, btn) {
+  statusFilter = val;
+  // Deactivate all status filter buttons (identified by data-status attribute)
+  document.querySelectorAll('[data-status]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function setSigFilter(val, btn) {
+  signalTypeFilter = val;
+  document.querySelectorAll('[data-sigtype]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function togglePumpFun(btn) {
+  pumpFunOnly = !pumpFunOnly;
+  btn.classList.toggle('active', pumpFunOnly);
+  render();
+}
+
+function toggleTGCalls(btn) {
+  tgCallsOnly = !tgCallsOnly;
+  btn.classList.toggle('active', tgCallsOnly);
+  if (tgCallsOnly) {
+    btn.style.background = 'rgba(167,139,250,0.2)';
+    btn.style.borderColor = '#a78bfa';
+    btn.style.color = '#a78bfa';
+  } else {
+    btn.style.background = '';
+    btn.style.borderColor = 'rgba(167,139,250,0.3)';
+    btn.style.color = '#a78bfa';
+  }
+  render();
+}
+
+function toggleTier(tier, btn) {
+  tierFilter[tier] = !tierFilter[tier];
+  btn.classList.toggle('active', tierFilter[tier]);
+  render();
+}
+
+async function fetchData() {
+  try {
+    const base = window.location.pathname.startsWith('/dashboard') ? '/dashboard' : '';
+    const res = await fetch(base + '/api/scan-candidates');
+    data = await res.json();
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    render();
+  } catch(e) {
+    console.error('Fetch failed:', e);
+  }
+}
+
+// Auto-refresh every 10s
+fetchData();
+setInterval(fetchData, 10000);
+</script>
+</body>
+</html>
