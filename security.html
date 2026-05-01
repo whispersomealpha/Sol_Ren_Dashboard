@@ -73,16 +73,6 @@
 <script>
 const API = 'https://165.22.118.96.nip.io/dashboard';
 
-// Auto-fill from ?security= param
-(function() {
-  const p = new URLSearchParams(window.location.search);
-  const m = p.get('security');
-  if (m) {
-    document.getElementById('mintInput').value = m;
-    setTimeout(runCheck, 400);
-  }
-})();
-
 async function runCheck() {
   const mint = document.getElementById('mintInput').value.trim();
   if (!mint || mint.length < 32) { alert('Enter a valid mint address'); return; }
@@ -151,6 +141,15 @@ function renderResults(data) {
 
 document.getElementById('mintInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') runCheck();
+});
+
+// Auto-fill from ?security= param and auto-run
+window.addEventListener('DOMContentLoaded', function() {
+  const m = new URLSearchParams(window.location.search).get('security');
+  if (m) {
+    document.getElementById('mintInput').value = m;
+    setTimeout(runCheck, 300);
+  }
 });
 </script>
 </body>
