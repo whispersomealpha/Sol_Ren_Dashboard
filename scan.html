@@ -583,7 +583,7 @@ function toggleTier(tier, btn) {
 
 async function fetchData() {
   try {
-    const base = window.location.pathname.startsWith('/dashboard') ? '/dashboard' : '';
+    const base = 'https://165.22.118.96.nip.io/dashboard';
     const res = await fetch(base + '/api/scan-candidates');
     data = await res.json();
     document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
