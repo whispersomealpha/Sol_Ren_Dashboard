@@ -143,10 +143,11 @@ document.getElementById('mintInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') runCheck();
 });
 
-// Auto-fill from ?security= param and auto-run
+// Auto-fill from sessionStorage (set by scan page) or ?security= query param
 window.addEventListener('DOMContentLoaded', function() {
-  const m = new URLSearchParams(window.location.search).get('security');
+  const m = sessionStorage.getItem('security_mint') || new URLSearchParams(window.location.search).get('security');
   if (m) {
+    sessionStorage.removeItem('security_mint');
     document.getElementById('mintInput').value = m;
     setTimeout(runCheck, 300);
   }
