@@ -84,10 +84,8 @@
   <button class="nav-burger" onclick="document.querySelector('header nav').classList.toggle('open')" aria-label="Menu">☰</button>
   <nav>
     <a href="/index.html">Dashboard</a>
-    <a href="/index.html">P&L Calendar</a>
-    <a href="/security.html">Manual Trade</a>
     <a href="/scan.html">Scan</a>
-    <a href="/index.html">Strategy</a>
+    <a href="/security.html">Security</a>
     <a href="/tgcalls.html" class="active">TG Calls</a>
   </nav>
   <div class="refresh-info"><span class="dot"></span>Live · <span id="countdown">30</span>s</div>
@@ -213,7 +211,7 @@
 </main>
 
 <script>
-const API = '/dashboard';
+const API = 'https://165.22.118.96.nip.io/dashboard';
 let allTokens = [];
 let activeChannel = 'all';
 let countdownVal = 30;
@@ -407,7 +405,7 @@ async function addChannels() {
   const raw = input.value;
   // Parse: split by newlines and commas, strip @, dedupe, remove empty
   const channels = [...new Set(
-    raw.split(/[\\n,]+/).map(s => s.trim().replace(/^@/, '').replace(/^https?:\\/\\/t\\.me\\//,'')).filter(Boolean)
+    raw.split(/[\n,]+/).map(s => s.trim().replace(/^@/, '').replace(/^https?:\/\/t\.me\//,'')).filter(Boolean)
   )];
   if (!channels.length) return;
   msg.textContent = `Adding ${channels.length} channel(s)…`;

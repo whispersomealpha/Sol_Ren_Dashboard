@@ -191,10 +191,8 @@
     <span class="badge" id="total-badge">0 tokens</span>
     <nav style="display:flex;align-items:center;gap:0;margin-left:16px">
       <a href="/index.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">Dashboard</a>
-      <a href="/index.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">P&L Calendar</a>
-      <a href="/security.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">Manual Trade</a>
       <a href="/scan.html" style="color:#ffffff;font-weight:600;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">Scan</a>
-      <a href="/index.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">Strategy</a>
+      <a href="/security.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;border-right:1px solid rgba(255,255,255,0.12);white-space:nowrap">Security</a>
       <a href="/tgcalls.html" style="color:#61abff;font-size:13px;text-decoration:none;padding:0 12px;white-space:nowrap">TG Calls</a>
     </nav>
   </div>
@@ -583,7 +581,7 @@ function toggleTier(tier, btn) {
 
 async function fetchData() {
   try {
-    const base = window.location.pathname.startsWith('/dashboard') ? '/dashboard' : '';
+    const base = 'https://165.22.118.96.nip.io/dashboard';
     const res = await fetch(base + '/api/scan-candidates');
     data = await res.json();
     document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
