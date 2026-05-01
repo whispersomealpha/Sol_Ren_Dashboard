@@ -405,7 +405,7 @@ async function addChannels() {
   const raw = input.value;
   // Parse: split by newlines and commas, strip @, dedupe, remove empty
   const channels = [...new Set(
-    raw.split(/[\\n,]+/).map(s => s.trim().replace(/^@/, '').replace(/^https?:\\/\\/t\\.me\\//,'')).filter(Boolean)
+    raw.split(/[\n,]+/).map(s => s.trim().replace(/^@/, '').replace(/^https?:\/\/t\.me\//,'')).filter(Boolean)
   )];
   if (!channels.length) return;
   msg.textContent = `Adding ${channels.length} channel(s)…`;
