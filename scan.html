@@ -116,6 +116,7 @@
     font-size: 10px; padding: 1px 5px; border-radius: 3px;
     margin-left: 6px; font-weight: 700; letter-spacing: 0.03em;
   }
+  .tier-dust  { background: rgba(75,85,99,0.2); color: #6b7280; }
   .tier-nano  { background: rgba(107,114,128,0.2); color: var(--muted); }
   .tier-micro { background: rgba(245,158,11,0.15); color: var(--yellow); }
   .tier-small { background: rgba(59,130,246,0.15); color: var(--accent); }
@@ -234,6 +235,7 @@
 
     <!-- Row 3: Market cap tier filters -->
     <div class="filter-row">
+      <button class="filter-btn active" id="btn-dust"  onclick="toggleTier('dust',this)">0k–30k</button>
       <button class="filter-btn active" id="btn-nano"  onclick="toggleTier('nano',this)">30k–60k</button>
       <button class="filter-btn active" id="btn-micro" onclick="toggleTier('micro',this)">60k–200k</button>
       <button class="filter-btn active" id="btn-small" onclick="toggleTier('small',this)">200k–500k</button>
@@ -292,7 +294,7 @@ let sortKey = 'mcap';
 let sortDir = -1;
 let statusFilter = 'all';
 let signalTypeFilter = 'all';
-let tierFilter = { nano: true, micro: true, small: true, mid: true, large: true };
+let tierFilter = { dust: true, nano: true, micro: true, small: true, mid: true, large: true };
 let pumpFunOnly = false;
 let tgCallsOnly = false;
 
@@ -317,6 +319,7 @@ function fmtAge(mins) {
 }
 
 function getTier(mcap) {
+  if (mcap < 30000)  return ['dust',  'DUST',  'tier-dust'];
   if (mcap < 60000)  return ['nano',  'NANO',  'tier-nano'];
   if (mcap < 200000) return ['micro', 'MICRO', 'tier-micro'];
   if (mcap < 500000) return ['small', 'SMALL', 'tier-small'];
