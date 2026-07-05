@@ -241,6 +241,7 @@
       <button class="filter-btn active" id="btn-small" onclick="toggleTier('small',this)">200k–500k</button>
       <button class="filter-btn active" id="btn-mid"   onclick="toggleTier('mid',this)">500k–2M</button>
       <button class="filter-btn active" id="btn-large" onclick="toggleTier('large',this)">2M+</button>
+      <button onclick="resetTiers()" style="margin-left:8px;padding:4px 10px;font-size:12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:#94a3b8;border-radius:6px;cursor:pointer" title="Reset all tier filters">↺ All</button>
     </div>
 
     <!-- Row 4: Age filter -->
@@ -576,6 +577,15 @@ function toggleTGCalls(btn) {
   render();
 }
 
+function resetTiers() {
+  ['dust','nano','micro','small','mid','large'].forEach(t => {
+    tierFilter[t] = true;
+    const b = document.getElementById('btn-' + t);
+    if (b) b.classList.add('active');
+  });
+  render();
+}
+
 function toggleTier(tier, btn) {
   tierFilter[tier] = !tierFilter[tier];
   btn.classList.toggle('active', tierFilter[tier]);
@@ -586,11 +596,15 @@ async function fetchData() {
   try {
     const base = 'https://165.22.118.96.nip.io/dashboard';
     const res = await fetch(base + '/api/scan-candidates');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     data = await res.json();
-    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString() + ' (' + data.length + ' tokens loaded)';
     render();
   } catch(e) {
     console.error('Fetch failed:', e);
+    document.getElementById('last-updated').textContent = '⚠️ Error: ' + e.message;
+    document.getElementById('total-badge').textContent = 'Error';
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:30px;color:#ef4444">⚠️ Failed to load data: ' + e.message + '</td></tr>';
   }
 }
 
