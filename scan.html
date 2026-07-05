@@ -276,7 +276,9 @@
       <th onclick="sortBy('m5')">5m <span class="sort-icon">↕</span></th>
       <th onclick="sortBy('h1')">1h <span class="sort-icon">↕</span></th>
       <th onclick="sortBy('h6')">6h <span class="sort-icon">↕</span></th>
-      <th onclick="sortBy('volume')">Volume 24h <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('vol_5m')">Vol 5m <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('vol_1h')">Vol 1h <span class="sort-icon">↕</span></th>
+      <th onclick="sortBy('volume')">Vol 24h <span class="sort-icon">↕</span></th>
       <th onclick="sortBy('age_mins')">Age <span class="sort-icon">↕</span></th>
       <th onclick="sortBy('ath_mcap')">ATH MC <span class="sort-icon">↕</span></th>
       <th onclick="sortBy('liq')">Liquidity <span class="sort-icon">↕</span></th>
@@ -498,6 +500,8 @@ function render() {
       '<td>' + fmtPct(t.m5) + '</td>' +
       '<td>' + fmtPct(t.h1) + '</td>' +
       '<td>' + fmtPct(t.h6) + '</td>' +
+      '<td class="vol-cell">' + (t.vol_5m > 0 ? fmt(t.vol_5m) : '<span style="color:var(--muted)">—</span>') + '</td>' +
+      '<td class="vol-cell">' + (t.vol_1h > 0 ? fmt(t.vol_1h) : '<span style="color:var(--muted)">—</span>') + '</td>' +
       '<td class="vol-cell">' + fmt(t.volume) + '</td>' +
       '<td style="font-size:12px;white-space:nowrap">' + fmtAge(t.age_mins) + '</td>' +
       '<td class="vol-cell" style="color:var(--yellow)">' + (t.ath_mcap > 0 ? fmt(t.ath_mcap) : '<span style="color:var(--muted)">—</span>') + '</td>' +
